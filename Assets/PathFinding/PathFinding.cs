@@ -41,7 +41,7 @@ namespace PathFind {
                 buffer.closedSet.Add(currentNode.coord, true);
 
                 if (currentNode.Equals(targetNode)) {
-                    return RetracePath(startNode, targetNode, ref path);
+                    return RetracePath(grid, startNode, targetNode, ref path);
                 }
 
                 int nodeIndex = PFUtils.GetPosIndex(currentNode.coord.x, currentNode.coord.y, grid.width);
@@ -62,7 +62,10 @@ namespace PathFind {
                     neighbour.gCost = newMovementCostToNeighbour;
                     neighbour.hCost = GetDistance(neighbour.coord, targetNode.coord);
                     neighbour.fCost = neighbour.gCost + neighbour.hCost;
-                    neighbour.parent = currentNode;
+
+                    Grid.LinkNode(grid, 
+                                  Grid.GetIndex(grid, neighbour.coord), 
+                                  Grid.GetIndex(grid, currentNode.coord));
 
                     if (!openContainsNeighbour) {
                         buffer.openSet.Add(neighbour);
@@ -73,13 +76,13 @@ namespace PathFind {
             return 0;
         }
 
-        private static int RetracePath(Node startNode, Node endNode, ref Point2[] path) {
+        private static int RetracePath(Grid grid, Node startNode, Node endNode, ref Point2[] path) {
             Node currentNode = endNode;
             int len = 0;
             while (!Equals(currentNode, startNode)) {
                 path[len] = currentNode.coord;
                 ++len;
-                currentNode = currentNode.parent;
+                currentNode = Grid.GetParentNode(grid, currentNode);
             }
             return len;
         }
