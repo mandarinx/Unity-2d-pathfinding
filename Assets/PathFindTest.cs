@@ -48,10 +48,8 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     private Point2         posTo;
     private bool           settingFrom;
     private IPathfinder    pathfinder;
-//    private List<Point2>   path;
 
     private TilemapCache   cache;
-    private Stopwatch sw;
 
     void Awake() {
         Assert.IsNotNull(btnPaint);
@@ -72,7 +70,6 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         settingFrom = true;
         posTo = new Point2(-1, -1);
         posFrom = new Point2(-1, -1);
-//        path = new List<Point2>(128);
 
         stateCallback = new Dictionary<int, Action<int, int, int>> {
             { 0, ActionPaint },
@@ -85,7 +82,6 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             cache.tilemap.Length == 0) {
             cache.Create(gridColumns, gridRows);
         }
-        sw = new Stopwatch();
     }
 
     private void OnApplicationQuit() {
@@ -97,7 +93,6 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     }
 
     private void OnEnable() {
-//        pathfinder = new JPSPathfinder();
         pathfinder = new TwoDeePathfinder();
         pathfinder.Create(gridColumns, gridRows);
 
@@ -158,10 +153,17 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         Transform tile = transform.GetChild(n);
         SpriteRenderer sr = tile.GetComponent<SpriteRenderer>();
 
+        int len = pathfinder.GetPathLength();
+        
         if (settingFrom) {
-            // Reset posTo
-            int fi = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
+            // Reset
+            for (int i=0; i<len; ++i) {
+                SetTileColor(pathfinder.GetPathCoord(i), Color.white);
+            }
+            int fi = Grid.GetIndex(gridColumns, posFrom.x, posFrom.y);
             SetTileColor(fi, Color.white);
+            int ti = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
+            SetTileColor(ti, Color.white);
             posTo = new Point2(-1, -1);
             posFrom = new Point2(x, y);
             settingFrom = false;
@@ -170,21 +172,13 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         }
 
         if (!settingFrom) {
-            int len = pathfinder.GetPathLength();
-            for (int i=0; i<len; ++i) {
-                SetTileColor(pathfinder.GetPathCoord(i), Color.white);
-            }
-            
             posTo = new Point2(x, y);
             settingFrom = true;
             sr.color = Color.blue;
             
-//            Profiler.BeginSample("Pathfind");
-            sw.Start();
+            Profiler.BeginSample("Pathfind");
             len = pathfinder.FindPath(posFrom, posTo);
-            sw.Stop();
-            UnityEngine.Debug.Log("Pathfind: "+sw.ElapsedMilliseconds+"ms");
-//            Profiler.EndSample();
+            Profiler.EndSample();
 
             for (int i=0; i<len; ++i) {
                 SetTileColor(pathfinder.GetPathCoord(i), Color.green);
