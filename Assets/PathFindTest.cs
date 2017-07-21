@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Security;
 using Mandarin;
@@ -60,6 +61,7 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
 //    private List<Point2>   path;
 
     private TilemapCache   cache;
+    private Stopwatch sw;
 
     void Awake() {
         Assert.IsNotNull(btnPaint);
@@ -93,6 +95,7 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             cache.tilemap.Length == 0) {
             cache.Create(gridColumns, gridRows);
         }
+        sw = new Stopwatch();
     }
 
     private void OnApplicationQuit() {
@@ -184,9 +187,12 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             settingFrom = true;
             sr.color = Color.blue;
             
-            Profiler.BeginSample("Pathfind");
+//            Profiler.BeginSample("Pathfind");
+            sw.Start();
             len = pathfinder.FindPath(posFrom, posTo);
-            Profiler.EndSample();
+            sw.Stop();
+            UnityEngine.Debug.Log("Pathfind: "+sw.ElapsedMilliseconds+"ms");
+//            Profiler.EndSample();
 
             for (int i=0; i<len; ++i) {
                 SetTileColor(pathfinder.GetPathCoord(i), Color.green);
