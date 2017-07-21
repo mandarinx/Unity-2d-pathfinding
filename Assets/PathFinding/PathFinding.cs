@@ -7,7 +7,6 @@
 * Modifications & API by: Ronen Ness.
 * Since: 2016.
 */
-using UnityEngine;
 using System.Collections.Generic;
 using Mandarin;
 
@@ -66,9 +65,7 @@ namespace PathFind {
                     neighbour.hCost = GetDistance(neighbour.x, neighbour.y, targetNode.x, targetNode.y);
                     neighbour.fCost = neighbour.gCost + neighbour.hCost;
 
-                    Grid.LinkNode(grid, 
-                                  Grid.GetIndex(gridwidth, neighbour.x, neighbour.y), 
-                                  Grid.GetIndex(gridwidth, currentNode.x, currentNode.y));
+                    Grid.LinkNode(grid, ni, ci);
 
                     if (!openContainsNeighbour) {
                         buffer.openSet.Add(neighbour);
