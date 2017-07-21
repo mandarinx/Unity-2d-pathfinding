@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Mandarin;
+using PathFind;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -13,16 +14,6 @@ using UnityEngine.UI;
 public enum PFState {
     PAINT = 0,
     PATH = 1,
-}
-
-public static class PFUtils {
-    public static Point2 GetPos(int n, int width) {
-        return new Point2(n % width, Mathf.FloorToInt((float)n / width));
-    }
-
-    public static int GetPosIndex(int x, int y, int width) {
-        return y * width + x;
-    }
 }
 
 [ExecuteInEditMode]
@@ -134,15 +125,17 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             tile.transform.SetParent(transform);
             tile.transform.localScale = new Vector3(tileWidth, tileHeight, 1f);
 
-            Point2 pos = PFUtils.GetPos(i, gridColumns);
+            int x = -1;
+            int y = -1;
+            Grid.GetPoint(gridColumns, i, ref x, ref y);
             tile.transform.localPosition = new Vector3(
-                pos.x * tileWidth - hWorldUnits * 0.5f, 
-                pos.y * tileHeight - vWorldUnits * 0.5f, 
+                x * tileWidth - hWorldUnits * 0.5f, 
+                y * tileHeight - vWorldUnits * 0.5f, 
                 0);
 
             bool isWalkable = cache.tilemap[i];
             sr.color = isWalkable ? Color.white: Color.gray;
-            pathfinder.SetWalkable(pos.x, pos.y, isWalkable);
+            pathfinder.SetWalkable(x, y, isWalkable);
         }
     }
 
@@ -167,7 +160,7 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
 
         if (settingFrom) {
             // Reset posTo
-            int fi = PFUtils.GetPosIndex(posTo.x, posTo.y, gridColumns);
+            int fi = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
             SetTileColor(fi, Color.white);
             posTo = new Point2(-1, -1);
             posFrom = new Point2(x, y);
@@ -205,11 +198,11 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         int x = Mathf.FloorToInt(pos.x / tileWidth);
         int y = Mathf.FloorToInt(pos.y / tileHeight);
         
-        stateCallback[(int)state].Invoke(x, y, PFUtils.GetPosIndex(x, y, gridColumns));
+        stateCallback[(int)state].Invoke(x, y, Grid.GetIndex(gridColumns, x, y));
     }
 
     private void SetTileColor(Point2 pos, Color col) {
-        SetTileColor(PFUtils.GetPosIndex(pos.x, pos.y, gridColumns), col);
+        SetTileColor(Grid.GetIndex(gridColumns, pos.x, pos.y), col);
     }
     
     private void SetTileColor(int n, Color col) {

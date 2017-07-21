@@ -27,17 +27,17 @@ namespace PathFind {
         }
 
         public static void SetWalkable(Grid grid, int x, int y, bool walkable) {
-            int n = PFUtils.GetPosIndex(x, y, grid.width);
+            int n = GetIndex(grid.width, x, y);
             grid.nodes[n].walkable = walkable;
         }
 
         public static bool IsWalkable(Grid grid, int x, int y) {
-            int n = PFUtils.GetPosIndex(x, y, grid.width);
+            int n = GetIndex(grid.width, x, y);
             return grid.nodes[n].walkable;
         }
 
         public static Node GetNode(Grid grid, int x, int y) {
-            return grid.nodes[PFUtils.GetPosIndex(x, y, grid.width)];
+            return grid.nodes[GetIndex(grid.width, x, y)];
         }
 
         public static void GetPoint(int gridwidth, int index, ref int x, ref int y) {
@@ -45,8 +45,8 @@ namespace PathFind {
             y = Mathf.FloorToInt((float)index / gridwidth);
         }
 
-        public static int GetIndex(Grid grid, int x, int y) {
-            return y * grid.width + x;
+        public static int GetIndex(int gridwidth, int x, int y) {
+            return y * gridwidth + x;
         }
 
         private void Init(int gridWidth, int gridHeight) {
@@ -90,7 +90,7 @@ namespace PathFind {
         }
 
         public static Node GetParentNode(Grid grid, Node child) {
-            int ci = GetIndex(grid, child.x, child.y);
+            int ci = GetIndex(grid.width, child.x, child.y);
             int pi = grid.nodelinks[ci];
             return grid.nodes[pi];
         }

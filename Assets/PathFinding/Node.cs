@@ -1,5 +1,4 @@
 ﻿using System;
-using Mandarin;
 
 namespace PathFind {
 
@@ -57,7 +56,6 @@ namespace PathFind {
                 diff = b.hCost - a.hCost;
             }
             if (diff > 0) {
-//            return coord == n.coord;
                 return 1;
             }
             if (diff < 0) {

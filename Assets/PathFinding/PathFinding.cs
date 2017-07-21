@@ -33,23 +33,24 @@ namespace PathFind {
 
             Node startNode = Grid.GetNode(grid, startPos.x, startPos.y);
             Node targetNode = Grid.GetNode(grid, targetPos.x, targetPos.y);
+            int gridwidth = grid.width;
 
             buffer.openSet.Add(startNode);
 
             while (buffer.openSet.Count > 0) {
                 Node currentNode = buffer.openSet.RemoveFirst();
-                int ci = Grid.GetIndex(grid, currentNode.x, currentNode.y);
+                int ci = Grid.GetIndex(gridwidth, currentNode.x, currentNode.y);
                 buffer.closedSet.Add(ci);
 
                 if (currentNode.Equals(targetNode)) {
                     return RetracePath(grid, startNode, targetNode, ref path);
                 }
 
-                int nodeIndex = PFUtils.GetPosIndex(currentNode.x, currentNode.y, grid.width);
+                int nodeIndex = Grid.GetIndex(gridwidth, currentNode.x, currentNode.y);
                 int numNeighbours = grid.UpdateNeighboursCache(nodeIndex);
                 for (int i = 0; i < numNeighbours; ++i) {
                     Node neighbour = grid.neighbours[i];
-                    int ni = Grid.GetIndex(grid, neighbour.x, neighbour.y);
+                    int ni = Grid.GetIndex(gridwidth, neighbour.x, neighbour.y);
 
                     if (!neighbour.walkable || buffer.closedSet.Contains(ni)) {
                         continue;
@@ -66,8 +67,8 @@ namespace PathFind {
                     neighbour.fCost = neighbour.gCost + neighbour.hCost;
 
                     Grid.LinkNode(grid, 
-                                  Grid.GetIndex(grid, neighbour.x, neighbour.y), 
-                                  Grid.GetIndex(grid, currentNode.x, currentNode.y));
+                                  Grid.GetIndex(gridwidth, neighbour.x, neighbour.y), 
+                                  Grid.GetIndex(gridwidth, currentNode.x, currentNode.y));
 
                     if (!openContainsNeighbour) {
                         buffer.openSet.Add(neighbour);

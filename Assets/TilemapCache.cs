@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using PathFind;
 using UnityEditor;
 using UnityEngine;
 
@@ -38,12 +39,12 @@ public class TilemapCache {
     }
 
     public void SetWalkable(int x, int y, bool walkable) {
-        int n = PFUtils.GetPosIndex(x, y, width);
+        int n = Grid.GetIndex(width, x, y);
         tilemap[n] = walkable;
     }
 
     public bool IsWalkable(int x, int y) {
-        int n = PFUtils.GetPosIndex(x, y, width);
+        int n = Grid.GetIndex(width, x, y);
         return tilemap[n];
     }
 }
