@@ -9,6 +9,8 @@ This is a highly specialized and optimized version of the pathfinder. It's meant
 
 On the first run, the pathfinder will spend a couple of milliseconds getting the path. But on succeeding runs, it will find the path in about 0.05 milliseconds. These numbers were reported by the profiler in Unity 2017.1.0f3. The tested were run in editor in an iOS project. The grid I used for testing was 7 x 27 (189) tiles.
 
+On an iPhone 6, with the same grid, app built for release, the first path found is returned in about 0.2 - 0.3 ms. Most paths are found within 0.05 - 0.3 ms.
+
 The pathfinder alloces 0 bytes at runtime.
 
 # Unity-2d-pathfinding

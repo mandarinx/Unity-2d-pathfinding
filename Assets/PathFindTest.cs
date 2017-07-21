@@ -1,10 +1,13 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Mandarin;
 using PathFind;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
@@ -50,6 +53,10 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     private IPathfinder    pathfinder;
 
     private TilemapCache   cache;
+    
+    private double ns;
+    private long ms;
+    private Stopwatch sw;
 
     void Awake() {
         Assert.IsNotNull(btnPaint);
@@ -82,6 +89,8 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             cache.tilemap.Length == 0) {
             cache.Create(gridColumns, gridRows);
         }
+        
+        sw = new Stopwatch();
     }
 
     private void OnApplicationQuit() {
@@ -176,9 +185,20 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             settingFrom = true;
             sr.color = Color.blue;
             
+            #if UNITY_EDITOR
             Profiler.BeginSample("Pathfind");
+            #endif
+
+            sw.Start();
             len = pathfinder.FindPath(posFrom, posTo);
+            sw.Stop();
+            ns = sw.Elapsed.TotalMilliseconds * 1000000;
+            ms = sw.ElapsedMilliseconds;
+            sw.Reset();
+            
+            #if UNITY_EDITOR
             Profiler.EndSample();
+            #endif
 
             for (int i=0; i<len; ++i) {
                 SetTileColor(pathfinder.GetPathCoord(i), Color.green);
@@ -232,6 +252,10 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     }
     
     void OnGUI() {
-        GUI.Label(new Rect(10, 20, 100, 20), "State: " + stateLabels[(int)state]);
+        GUI.color = Color.black;
+        GUI.Label(new Rect(10, 20, 700, 20), 
+            "State: " + stateLabels[(int)state] 
+            + " Pathfind: " + ns.ToString("000 000 000 000") + " ns"
+            + " (" + ms + " ms)");
     }
 }
