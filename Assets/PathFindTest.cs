@@ -169,10 +169,17 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             for (int i=0; i<len; ++i) {
                 SetTileColor(pathfinder.GetPathCoord(i), Color.white);
             }
-            int fi = Grid.GetIndex(gridColumns, posFrom.x, posFrom.y);
-            SetTileColor(fi, Color.white);
-            int ti = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
-            SetTileColor(ti, Color.white);
+            
+            if (posFrom.x >= 0 && posFrom.y >= 0) {
+                int fi = Grid.GetIndex(gridColumns, posFrom.x, posFrom.y);
+                SetTileColor(fi, pathfinder.IsWalkable(posFrom.x, posFrom.y) ? Color.white : Color.gray);
+            }
+                
+            if (posTo.x >= 0 && posTo.y >= 0) {
+                int ti = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
+                SetTileColor(ti, pathfinder.IsWalkable(posTo.x, posTo.y) ? Color.white : Color.gray);
+            }
+                
             posTo = new Point2(-1, -1);
             posFrom = new Point2(x, y);
             settingFrom = false;
@@ -183,7 +190,6 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         if (!settingFrom) {
             posTo = new Point2(x, y);
             settingFrom = true;
-            sr.color = Color.blue;
             
             #if UNITY_EDITOR
             Profiler.BeginSample("Pathfind");
@@ -203,6 +209,8 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             for (int i=0; i<len; ++i) {
                 SetTileColor(pathfinder.GetPathCoord(i), Color.green);
             }
+            
+            sr.color = Color.blue;
         }
     }
 
