@@ -14,13 +14,15 @@ namespace PathFind {
         public int hCost;
         public int fCost;
 
-        public readonly Point2 coord;
+        public readonly int x;
+        public readonly int y;
 
         public int heapIndex;
 
         public Node(bool isWalkable, int _gridX, int _gridY) {
             walkable = isWalkable;
-            coord = new Point2(_gridX, _gridY);
+            x = _gridX;
+            y = _gridY;
         }
 
         public override bool Equals(Object obj) {
@@ -28,12 +30,11 @@ namespace PathFind {
             if (n == null) {
                 return false;
             }
-
-            return (coord.x == n.coord.x) && (coord.y == n.coord.y);
+            return (x == n.x) && (y == n.y);
         }
         
         public override int GetHashCode() {
-            return coord.GetHashCode() ^ coord.GetHashCode();
+            return (x ^ y) ^ (x ^ y);
         }
 
         public int GetHeapIndex() {
@@ -45,7 +46,7 @@ namespace PathFind {
         }
 
         public override string ToString() {
-            return "<Node> x:"+coord.x+" y:"+coord.y+" walkable:"+(walkable ? "yes" : "no");
+            return "<Node> x:"+x+" y:"+y+" walkable:"+(walkable ? "yes" : "no");
         }
     }
 

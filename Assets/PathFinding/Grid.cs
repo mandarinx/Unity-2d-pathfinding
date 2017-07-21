@@ -1,5 +1,4 @@
-﻿using Mandarin;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace PathFind {
 
@@ -19,8 +18,11 @@ namespace PathFind {
             Init(width, height);
 
             for (int i = 0; i < nodes.Length; ++i) {
-                Point2 p = GetPoint(this, i);
-                nodes[i] = new Node(walkable_tiles[i], p.x, p.y);
+                int x = -1;
+                int y = -1;
+                
+                GetPoint(width, i, ref x, ref y);
+                nodes[i] = new Node(walkable_tiles[i], x, y);
             }
         }
 
@@ -38,16 +40,13 @@ namespace PathFind {
             return grid.nodes[PFUtils.GetPosIndex(x, y, grid.width)];
         }
 
-        public static Point2 GetPoint(Grid grid, int index) {
-            return new Point2(index % grid.width, Mathf.FloorToInt((float)index / grid.width));
+        public static void GetPoint(int gridwidth, int index, ref int x, ref int y) {
+            x = index % gridwidth; 
+            y = Mathf.FloorToInt((float)index / gridwidth);
         }
 
         public static int GetIndex(Grid grid, int x, int y) {
             return y * grid.width + x;
-        }
-
-        public static int GetIndex(Grid grid, Point2 p) {
-            return p.y * grid.width + p.x;
         }
 
         private void Init(int gridWidth, int gridHeight) {
@@ -91,7 +90,7 @@ namespace PathFind {
         }
 
         public static Node GetParentNode(Grid grid, Node child) {
-            int ci = GetIndex(grid, child.coord);
+            int ci = GetIndex(grid, child.x, child.y);
             int pi = grid.nodelinks[ci];
             return grid.nodes[pi];
         }

@@ -38,34 +38,36 @@ namespace PathFind {
 
             while (buffer.openSet.Count > 0) {
                 Node currentNode = buffer.openSet.RemoveFirst();
-                buffer.closedSet.Add(currentNode.coord, true);
+                int ci = Grid.GetIndex(grid, currentNode.x, currentNode.y);
+                buffer.closedSet.Add(ci);
 
                 if (currentNode.Equals(targetNode)) {
                     return RetracePath(grid, startNode, targetNode, ref path);
                 }
 
-                int nodeIndex = PFUtils.GetPosIndex(currentNode.coord.x, currentNode.coord.y, grid.width);
+                int nodeIndex = PFUtils.GetPosIndex(currentNode.x, currentNode.y, grid.width);
                 int numNeighbours = grid.UpdateNeighboursCache(nodeIndex);
                 for (int i = 0; i < numNeighbours; ++i) {
                     Node neighbour = grid.neighbours[i];
+                    int ni = Grid.GetIndex(grid, neighbour.x, neighbour.y);
 
-                    if (!neighbour.walkable || buffer.closedSet.ContainsKey(neighbour.coord)) {
+                    if (!neighbour.walkable || buffer.closedSet.Contains(ni)) {
                         continue;
                     }
 
-                    int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode.coord, neighbour.coord);
+                    int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode.x, currentNode.y, neighbour.x, neighbour.y);
                     bool openContainsNeighbour = buffer.openSet.Contains(neighbour);
                     if (newMovementCostToNeighbour >= neighbour.gCost && openContainsNeighbour) {
                         continue;
                     }
                     
                     neighbour.gCost = newMovementCostToNeighbour;
-                    neighbour.hCost = GetDistance(neighbour.coord, targetNode.coord);
+                    neighbour.hCost = GetDistance(neighbour.x, neighbour.y, targetNode.x, targetNode.y);
                     neighbour.fCost = neighbour.gCost + neighbour.hCost;
 
                     Grid.LinkNode(grid, 
-                                  Grid.GetIndex(grid, neighbour.coord), 
-                                  Grid.GetIndex(grid, currentNode.coord));
+                                  Grid.GetIndex(grid, neighbour.x, neighbour.y), 
+                                  Grid.GetIndex(grid, currentNode.x, currentNode.y));
 
                     if (!openContainsNeighbour) {
                         buffer.openSet.Add(neighbour);
@@ -80,17 +82,17 @@ namespace PathFind {
             Node currentNode = endNode;
             int len = 0;
             while (!Equals(currentNode, startNode)) {
-                path[len] = currentNode.coord;
+                path[len] = new Point2(currentNode.x, currentNode.y);
                 ++len;
                 currentNode = Grid.GetParentNode(grid, currentNode);
             }
             return len;
         }
 
-        private static int GetDistance(Point2 a, Point2 b) {
-            int dstX = a.x - b.x;
+        private static int GetDistance(int ax, int ay, int bx, int by) {
+            int dstX = ax - bx;
             dstX = dstX < 0 ? -dstX : dstX;
-            int dstY = a.y - b.y;
+            int dstY = ay - by;
             dstY = dstY < 0 ? -dstY : dstY;
 
             if (dstX > dstY) {
@@ -103,11 +105,17 @@ namespace PathFind {
     public class PathfindingBuffer {
 
         public Heap<Node> openSet;
-        public Dictionary<Point2, bool> closedSet;
+        public HashSet<int> closedSet;
         
         public PathfindingBuffer(int gridSize) {
             openSet = new Heap<Node>(gridSize, new NodeComparer());
-            closedSet = new Dictionary<Point2, bool>(gridSize, new Point2Comparer());
+            closedSet = new HashSet<int>();
+
+            // Preallocate hashset
+            for (int i = 0; i < gridSize; ++i) {
+                closedSet.Add(i);
+            }
+            closedSet.Clear();
         }
 
         public void Clear() {
