@@ -10,7 +10,6 @@ namespace PathFind {
         
         public int width;
         public int height;
-        private int[] neighbourDirs;
         
         private const int NUM_NEIGHBOURS = 4;
 
@@ -54,29 +53,40 @@ namespace PathFind {
             height = gridHeight;
             nodes = new Node[width * height];
             nodelinks = new int[width * height];
-            // Use Von Neumann neighbourhood.
-            // Sequence: N > E > S > W
-            neighbourDirs = new [] {width, 1, -width, -1};
             neighbours = new Node[NUM_NEIGHBOURS];
         }
 
-        // It would be better if this function populated
-        // the neighbour cache with the data needed by
-        // FindPath.
-        // - walkable
-        // - coord or index
-        // - f/g/hCost
         public int UpdateNeighboursCache(int nodeIndex) {
             int n = 0;
-            for (int i = 0; i < NUM_NEIGHBOURS; ++i) {
-                int ni = nodeIndex + neighbourDirs[i];
-
-                if (ni < 0 || ni >= size) {
-                    continue;
-                }
-
-                neighbours[n] = nodes[ni];
-                ++n;
+            // Check coordinate to the south of nodeIndex
+            int ni = nodeIndex - width;
+            // Make sure the south coordinate is not outside the map
+            if (ni >= 0) {
+                neighbours[n++] = nodes[ni];
+            }
+            
+            // West
+            ni = nodeIndex - 1;
+            // Don't bother checking for west if nodeIndex
+            // is positioned along the left edge of the map
+            if (nodeIndex % width > 0) {
+                neighbours[n++] = nodes[ni];
+            }
+            
+            // East
+            ni = nodeIndex + 1;
+            // Check for east coordinate as long as nodeIndex
+            // is on a coordinate at least one column to the 
+            // left of the right edge of the map
+            if (nodeIndex % width < width - 1) {
+                neighbours[n++] = nodes[ni];
+            }
+            
+            // North
+            ni = nodeIndex + width;
+            // Make sure north coordinate is not outside the map
+            if (ni < size) {
+                neighbours[n++] = nodes[ni];
             }
             return n;
         }
