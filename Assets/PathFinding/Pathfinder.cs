@@ -7,10 +7,9 @@
 * Modifications & API by: Ronen Ness.
 * Since: 2016.
 */
-using System.Collections.Generic;
 using Mandarin;
 
-namespace PathFind {
+namespace Pathfinding {
     
     /**
     * Main class to find the best path from A to B.
@@ -18,45 +17,54 @@ namespace PathFind {
     * Grid grid = new Grid(width, height, tiles_costs);
     * List<Point> path = Pathfinding.FindPath(grid, from, to);
     */
-    public class Pathfinding {
+    public class Pathfinder {
         
         // The API you should use to get path
         // grid: grid to search in.
         // startPos: starting position.
         // targetPos: ending position.
-        public static int FindPath(Grid              grid, 
-                                   Point2            startPos, 
-                                   Point2            targetPos, 
-                                   PathfindingBuffer buffer, 
-                                   ref Point2[]      path) {
+        public static int Find(Grid              grid, 
+                               Point2            startPos, 
+                               Point2            targetPos, 
+                               int               mask, 
+                               ref PathData[]    path) {
 
             Node startNode = Grid.GetNode(grid, startPos.x, startPos.y);
             Node targetNode = Grid.GetNode(grid, targetPos.x, targetPos.y);
-            int gridwidth = grid.width;
+            int gridwidth = Grid.GetWidth(grid);
 
-            buffer.openSet.Add(startNode);
+            Grid.ClearBuffer(grid);
+            Grid.AddToOpenSet(grid, startNode);
 
-            while (buffer.openSet.Count > 0) {
-                Node currentNode = buffer.openSet.RemoveFirst();
+            while (Grid.GetOpenSetCount(grid) > 0) {
+                Node currentNode = Grid.RemoveFirstFromOpenSet(grid);
                 int ci = Grid.GetIndex(gridwidth, currentNode.x, currentNode.y);
-                buffer.closedSet.Add(ci);
-
+                Grid.AddToClosedSet(grid, ci);
+                
+                // Postpone till after the while loop? Will that
+                // make it so that the path is returned, even when
+                // we couldn't reach the target position?
                 if (currentNode.Equals(targetNode)) {
                     return RetracePath(grid, startNode, targetNode, ref path);
                 }
 
                 int nodeIndex = Grid.GetIndex(gridwidth, currentNode.x, currentNode.y);
-                int numNeighbours = grid.UpdateNeighboursCache(nodeIndex);
+                
+                int numNeighbours = Grid.UpdateNeighboursCache(grid, nodeIndex);
                 for (int i = 0; i < numNeighbours; ++i) {
-                    Node neighbour = grid.neighbours[i];
+                    Node neighbour = Grid.GetNeighbour(grid, i);
                     int ni = Grid.GetIndex(gridwidth, neighbour.x, neighbour.y);
 
-                    if (!neighbour.walkable || buffer.closedSet.Contains(ni)) {
+                    if ((mask & Node.GetType(neighbour)) == 0 || 
+                    Grid.ClosedSetContains(grid, ni)) {
                         continue;
                     }
 
-                    int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode.x, currentNode.y, neighbour.x, neighbour.y);
-                    bool openContainsNeighbour = buffer.openSet.Contains(neighbour);
+                    int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode.x, 
+                                                                                     currentNode.y, 
+                                                                                     neighbour.x, 
+                                                                                     neighbour.y);
+                    bool openContainsNeighbour = Grid.OpenSetContains(grid, neighbour);
                     if (newMovementCostToNeighbour >= neighbour.gCost && openContainsNeighbour) {
                         continue;
                     }
@@ -68,7 +76,7 @@ namespace PathFind {
                     Grid.LinkNode(grid, ni, ci);
 
                     if (!openContainsNeighbour) {
-                        buffer.openSet.Add(neighbour);
+                        Grid.AddToOpenSet(grid, neighbour);
                     }
                 }
             }
@@ -76,11 +84,13 @@ namespace PathFind {
             return 0;
         }
 
-        private static int RetracePath(Grid grid, Node startNode, Node endNode, ref Point2[] path) {
+        private static int RetracePath(Grid grid, Node startNode, Node endNode, ref PathData[] path) {
             Node currentNode = endNode;
             int len = 0;
             while (!Equals(currentNode, startNode)) {
-                path[len] = new Point2(currentNode.x, currentNode.y);
+                path[len] = new PathData(currentNode.x, 
+                                         currentNode.y,
+                                         Node.GetType(currentNode));
                 ++len;
                 currentNode = Grid.GetParentNode(grid, currentNode);
             }
@@ -97,28 +107,6 @@ namespace PathFind {
                 return 14 * dstY + 10 * (dstX - dstY);
             }
             return 14 * dstX + 10 * (dstY - dstX);
-        }
-    }
-
-    public class PathfindingBuffer {
-
-        public Heap<Node> openSet;
-        public HashSet<int> closedSet;
-        
-        public PathfindingBuffer(int gridSize) {
-            openSet = new Heap<Node>(gridSize, new NodeComparer());
-            closedSet = new HashSet<int>();
-
-            // Preallocate hashset
-            for (int i = 0; i < gridSize; ++i) {
-                closedSet.Add(i);
-            }
-            closedSet.Clear();
-        }
-
-        public void Clear() {
-            openSet.Clear();
-            closedSet.Clear();
         }
     }
 }

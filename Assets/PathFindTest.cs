@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Mandarin;
-using PathFind;
+using Pathfinding;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
@@ -24,13 +24,16 @@ public enum PFState {
 public class PathFindTest : MonoBehaviour, IPointerClickHandler {
 
     public PFState state;
+    public int     paintMask;
+    public int     walkMask;
 
     [Space(10f)]
     public TextAsset cacheAsset;
     
     [Space(10f)]
-    public Button btnPaint;
-    public Button btnPath;
+    public Toggle btnPath;
+    public Toggle[] btnPaints;
+    public Toggle[] btnMasks;
 
     [Space(10f)]
     public Sprite tileSprite;
@@ -38,6 +41,9 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     [Space(10f)]
     public int gridColumns;
     public int gridRows;
+
+    [Space(10f)]
+    public Font labelFont;
 
     private float vWorldUnits;
     private float hWorldUnits;
@@ -53,21 +59,37 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     private IPathfinder    pathfinder;
 
     private TilemapCache   cache;
+
+    private const int FLOOR = 1;
     
     private double ns;
     private long ms;
     private Stopwatch sw;
 
     void Awake() {
-        Assert.IsNotNull(btnPaint);
         Assert.IsNotNull(btnPath);
         Assert.IsNotNull(tileSprite);
         Assert.IsNotNull(cacheAsset);
+
+        switch (state) {
+            case PFState.PATH:
+                btnPath.GetComponent<Toggle>().isOn = true;
+                break;
+            case PFState.PAINT:
+                btnPaints[(int)Mathf.Log(paintMask)].GetComponent<Toggle>().isOn = true;
+                break;
+        }
         
-        SetState(state);
-        
-        btnPaint.onClick.AddListener(OnClickPaint);
-        btnPath.onClick.AddListener(OnClickPath);
+        btnPath.onValueChanged.AddListener(OnClickPath);
+        btnPaints[0].onValueChanged.AddListener(OnClickPaint0);
+        btnPaints[1].onValueChanged.AddListener(OnClickPaint1);
+        btnPaints[2].onValueChanged.AddListener(OnClickPaint2);
+        btnPaints[3].onValueChanged.AddListener(OnClickPaint4);
+        btnMasks[0].onValueChanged.AddListener(OnClickMask0);
+        btnMasks[1].onValueChanged.AddListener(OnClickMask1);
+        btnMasks[2].onValueChanged.AddListener(OnClickMask2);
+
+        SetMask();
 
         BoxCollider2D bc = GetComponent<BoxCollider2D>();
         bc.size = new Vector2(
@@ -82,13 +104,6 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             { 0, ActionPaint },
             { 1, ActionPath },
         };
-
-        cache = JsonUtility.FromJson<TilemapCache>(cacheAsset.text);
-        if (cache.width != gridColumns || 
-            cache.height != gridRows ||
-            cache.tilemap.Length == 0) {
-            cache.Create(gridColumns, gridRows);
-        }
         
         sw = new Stopwatch();
     }
@@ -102,8 +117,19 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     }
 
     private void OnEnable() {
+        cache = JsonUtility.FromJson<TilemapCache>(cacheAsset.text);
+        if (cache == null) {
+            cache = new TilemapCache(gridColumns, gridRows, FLOOR);
+        }
+        
+        if (cache.width != gridColumns || 
+            cache.height != gridRows ||
+            cache.tilemap.Length != gridColumns * gridRows) {
+            cache = new TilemapCache(gridColumns, gridRows, FLOOR);
+        }
+
         pathfinder = new TwoDeePathfinder();
-        pathfinder.Create(gridColumns, gridRows);
+        pathfinder.Create(gridColumns, gridRows, FLOOR);
 
         stateLabels = new Dictionary<int, string> {
             { 0, "Paint" },
@@ -124,22 +150,51 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         int tot = gridColumns * gridRows;
         for (int i = 0; i < tot; ++i) {
             GameObject tile = new GameObject("Tile_" + i.ToString("000"));
+            
             SpriteRenderer sr = tile.AddComponent<SpriteRenderer>();
             sr.sprite = tileSprite;
+            
+            GameObject label = new GameObject("Label");
+            
+            label.AddComponent<Canvas>();
+            label.AddComponent<CanvasRenderer>();
+            
+            CanvasScaler cs = label.AddComponent<CanvasScaler>();
+            cs.dynamicPixelsPerUnit = 100f;
+            
+            Text lText = label.AddComponent<Text>();
+            lText.fontSize = 0;
+            lText.supportRichText = false;
+            lText.alignment = TextAnchor.MiddleCenter;
+            lText.color = new Color(105f/255f, 105f/255f, 105f/255f);
+            lText.raycastTarget = false;
+            lText.resizeTextForBestFit = true;
+            lText.resizeTextMinSize = 0;
+            lText.font = labelFont;
+            
+            RectTransform rt = label.GetComponent<RectTransform>();
+            rt.sizeDelta = Vector2.one * 0.5f;
+            rt.position = new Vector3(0.5f, 0.5f, 0f);
+            
+            label.transform.SetParent(tile.transform);
+            
             tile.transform.SetParent(transform);
             tile.transform.localScale = new Vector3(tileWidth, tileHeight, 1f);
 
             int x = -1;
             int y = -1;
-            Grid.GetPoint(gridColumns, i, ref x, ref y);
+            Grid.GetPoint(gridColumns, i, out x, out y);
             tile.transform.localPosition = new Vector3(
                 x * tileWidth - hWorldUnits * 0.5f, 
                 y * tileHeight - vWorldUnits * 0.5f, 
                 0);
 
-            bool isWalkable = cache.tilemap[i];
-            sr.color = isWalkable ? Color.white: Color.gray;
-            pathfinder.SetWalkable(x, y, isWalkable);
+            int type = cache.tilemap[i];
+            pathfinder.SetType(x, y, type);
+            if (type > 0) {
+                lText.text = type.ToString();
+            }
+            SetTileColor(sr, type == 0 ? Color.black : Color.white);
         }
     }
 
@@ -150,12 +205,14 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
     }
 
     private void ActionPaint(int x, int y, int n) {
-        bool isWalkable = pathfinder.IsWalkable(x, y);
-        Color col = isWalkable ? Color.gray : Color.white;
-        Transform tile = transform.GetChild(n);
-        tile.GetComponent<SpriteRenderer>().color = col;
-        pathfinder.SetWalkable(x, y, !isWalkable);
-        cache.SetWalkable(x, y, !isWalkable);
+        Text label = transform.GetChild(n).GetChild(0).GetComponent<Text>();
+        label.text = label.text != "0" && paintMask == 0
+            ? ""
+            : paintMask.ToString();
+
+        SetTileColor(n, paintMask == 0 ? Color.black : Color.white);
+        pathfinder.SetType(x, y, paintMask);
+        cache.SetType(x, y, paintMask);
     }
 
     private void ActionPath(int x, int y, int n) {
@@ -167,17 +224,17 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         if (settingFrom) {
             // Reset
             for (int i=0; i<len; ++i) {
-                SetTileColor(pathfinder.GetPathCoord(i), Color.white);
+                SetTileColor(pathfinder.GetPathData(i), Color.white);
             }
             
             if (posFrom.x >= 0 && posFrom.y >= 0) {
                 int fi = Grid.GetIndex(gridColumns, posFrom.x, posFrom.y);
-                SetTileColor(fi, pathfinder.IsWalkable(posFrom.x, posFrom.y) ? Color.white : Color.gray);
+                SetTileColor(fi, pathfinder.GetType(posFrom.x, posFrom.y) > 0 ? Color.white : Color.black);
             }
                 
             if (posTo.x >= 0 && posTo.y >= 0) {
                 int ti = Grid.GetIndex(gridColumns, posTo.x, posTo.y);
-                SetTileColor(ti, pathfinder.IsWalkable(posTo.x, posTo.y) ? Color.white : Color.gray);
+                SetTileColor(ti, Color.white);
             }
                 
             posTo = new Point2(-1, -1);
@@ -196,7 +253,7 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             #endif
 
             sw.Start();
-            len = pathfinder.FindPath(posFrom, posTo);
+            len = pathfinder.FindPath(posFrom, posTo, walkMask);
             sw.Stop();
             ns = sw.Elapsed.TotalMilliseconds * 1000000;
             ms = sw.ElapsedMilliseconds;
@@ -207,7 +264,7 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             #endif
 
             for (int i=0; i<len; ++i) {
-                SetTileColor(pathfinder.GetPathCoord(i), Color.green);
+                SetTileColor(pathfinder.GetPathData(i), Color.green);
             }
             
             sr.color = Color.blue;
@@ -223,8 +280,8 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
         stateCallback[(int)state].Invoke(x, y, Grid.GetIndex(gridColumns, x, y));
     }
 
-    private void SetTileColor(Point2 pos, Color col) {
-        SetTileColor(Grid.GetIndex(gridColumns, pos.x, pos.y), col);
+    private void SetTileColor(PathData data, Color col) {
+        SetTileColor(Grid.GetIndex(gridColumns, data.x, data.y), col);
     }
     
     private void SetTileColor(int n, Color col) {
@@ -236,27 +293,52 @@ public class PathFindTest : MonoBehaviour, IPointerClickHandler {
             .GetComponent<SpriteRenderer>()
             .color = col;
     }
+    
+    private void SetTileColor(SpriteRenderer sr, Color col) {
+        sr.color = col;
+    }
 
-    private void SetState(PFState pfstate) {
-        state = pfstate;
-        switch (pfstate) {
-            case PFState.PAINT:
-                btnPaint.GetComponent<Image>().color = Color.gray;
-                btnPath.GetComponent<Image>().color = Color.white;
-                return;
-            case PFState.PATH:
-                btnPaint.GetComponent<Image>().color = Color.white;
-                btnPath.GetComponent<Image>().color = Color.gray;
-                return;
+    private void SetMask() {
+        walkMask = 0;
+        for (int i = 0; i < btnMasks.Length; ++i) {
+            walkMask += btnMasks[i].isOn ? (int)Mathf.Pow(2, i) : 0;
         }
     }
 
-    public void OnClickPaint() {
-        SetState(PFState.PAINT);
+    public void OnClickMask0(bool toggled) {
+        SetMask();
     }
 
-    public void OnClickPath() {
-        SetState(PFState.PATH);
+    public void OnClickMask1(bool toggled) {
+        SetMask();
+    }
+
+    public void OnClickMask2(bool toggled) {
+        SetMask();
+    }
+
+    public void OnClickPaint0(bool toggled) {
+        state = PFState.PAINT;
+        paintMask = 0;
+    }
+
+    public void OnClickPaint1(bool toggled) {
+        state = PFState.PAINT;
+        paintMask = 1;
+    }
+
+    public void OnClickPaint2(bool toggled) {
+        state = PFState.PAINT;
+        paintMask = 2;
+    }
+
+    public void OnClickPaint4(bool toggled) {
+        state = PFState.PAINT;
+        paintMask = 4;
+    }
+
+    public void OnClickPath(bool toggled) {
+        state = PFState.PATH;
     }
     
     void OnGUI() {

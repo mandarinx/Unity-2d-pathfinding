@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace PathFind {
+namespace Pathfinding {
 
     public class Node : IHeapItem<Node> {
 
-        public bool walkable;
+        private int type;
         
         // calculated values while finding path
         // gCost = distance to start node
@@ -18,8 +18,8 @@ namespace PathFind {
 
         public int heapIndex;
 
-        public Node(bool isWalkable, int _gridX, int _gridY) {
-            walkable = isWalkable;
+        public Node(int _gridX, int _gridY, int _type) {
+            type = _type;
             x = _gridX;
             y = _gridY;
         }
@@ -45,7 +45,15 @@ namespace PathFind {
         }
 
         public override string ToString() {
-            return "<Node> x:"+x+" y:"+y+" walkable:"+(walkable ? "yes" : "no");
+            return "<Node> x:"+x+" y:"+y;
+        }
+
+        public static void SetType(Node node, int type) {
+            node.type = type;
+        }
+
+        public static int GetType(Node node) {
+            return node.type;
         }
     }
 

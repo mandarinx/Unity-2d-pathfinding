@@ -1,12 +1,12 @@
 ﻿using System;
-using PathFind;
+using Pathfinding;
 using UnityEngine;
 
 [Serializable]
 public class TilemapCache {
     
     [SerializeField]
-    public bool[] tilemap;
+    public int[] tilemap;
 
     [SerializeField]
     private int w;
@@ -16,22 +16,27 @@ public class TilemapCache {
     private int h;
     public int height { get { return h; } private set { h = value; } }
 
-    public void Create(int width, int height) {
+    public TilemapCache(int width, int height, int type) {
         this.width = width;
         this.height = height;
-        tilemap = new bool[width * height];
+        tilemap = new int[width * height];
         for (int i = 0; i < tilemap.Length; ++i) {
-            tilemap[i] = true;
+            tilemap[i] = type;
         }
     }
 
-    public void SetWalkable(int x, int y, bool walkable) {
+    public void SetType(int x, int y, int type) {
         int n = Grid.GetIndex(width, x, y);
-        tilemap[n] = walkable;
+        tilemap[n] = type;
     }
 
-    public bool IsWalkable(int x, int y) {
+    public int GetType(int x, int y) {
         int n = Grid.GetIndex(width, x, y);
         return tilemap[n];
+    }
+
+    public bool IsType(int x, int y, int type) {
+        int n = Grid.GetIndex(width, x, y);
+        return (type & tilemap[n]) > 0;
     }
 }

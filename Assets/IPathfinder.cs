@@ -1,10 +1,11 @@
 ﻿using Mandarin;
+using Pathfinding;
 
 public interface IPathfinder {
-    void Create(int width, int height);
-    int FindPath(Point2 fromPoint, Point2 toPoint);
-    void SetWalkable(int x, int y, bool walkable);
-    bool IsWalkable(int x, int y);
-    Point2 GetPathCoord(int n);
+    void Create(int width, int height, int type);
+    int FindPath(Point2 fromPoint, Point2 toPoint, int mask);
+    void SetType(int x, int y, int type);
+    int GetType(int x, int y);
+    PathData GetPathData(int n);
     int GetPathLength();
 }
