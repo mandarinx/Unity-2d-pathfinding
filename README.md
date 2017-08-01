@@ -2,10 +2,11 @@
 
 This is a highly specialized and optimized version of the pathfinder. It's meant to be used in a specific game.
 
-- Nodes are either walkable or not.
+- Nodes have a type (int) field for masking off areas of the grid. Use the mask argument in Pathfinder.Find() to tell the pathfinder which areas of the grid should be considered walkable for the path you're looking for.
 - Movement is allowed only along the cardinal axis.
+- The pathfinder will exit and return the path when it reaches the neighbour of the target node, and the target node's type is not in the current mask.
 - The API has been changed a bit to get rid of memory allocations.
-- It's meant to be fast on small grids. I haven't tested it on large grids.
+- It's meant to be fast on small grids. It's not tested on large grids.
 
 On the first run, the pathfinder will spend a couple of milliseconds getting the path. But on succeeding runs, it will find the path in about 0.05 milliseconds. These numbers were reported by the profiler in Unity 2017.1.0f3. The tested were run in editor in an iOS project. The grid I used for testing was 7 x 27 (189) tiles.
 

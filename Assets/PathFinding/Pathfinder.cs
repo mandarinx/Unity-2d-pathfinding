@@ -3,6 +3,8 @@
 * Heavily based on code from this tutorial: https://www.youtube.com/watch?v=mZfyt03LDH4
 * This is just a Unity port of the code from the tutorial + option to set penalty + nicer API.
 *
+* Heavily modified, cleaned up and optimized by Thomas Viktil.
+*
 * Original Code author: Sebastian Lague.
 * Modifications & API by: Ronen Ness.
 * Since: 2016.
@@ -11,18 +13,13 @@ using Mandarin;
 
 namespace Pathfinding {
     
-    /**
-    * Main class to find the best path from A to B.
-    * Use like this:
-    * Grid grid = new Grid(width, height, tiles_costs);
-    * List<Point> path = Pathfinding.FindPath(grid, from, to);
-    */
     public class Pathfinder {
         
-        // The API you should use to get path
-        // grid: grid to search in.
-        // startPos: starting position.
-        // targetPos: ending position.
+        // grid:         grid to search in
+        // startPos:     starting position
+        // targetPos:    ending position
+        // mask:         the walkable nodes for this path
+        // path:         an array for holding the path
         public static int Find(Grid              grid, 
                                Point2            startPos, 
                                Point2            targetPos, 
@@ -41,9 +38,8 @@ namespace Pathfinding {
                 int ci = Grid.GetIndex(gridwidth, currentNode.x, currentNode.y);
                 Grid.AddToClosedSet(grid, ci);
                 
-                // Postpone till after the while loop? Will that
-                // make it so that the path is returned, even when
-                // we couldn't reach the target position?
+                // Return when looking for a path that goes from and to the
+                // same node
                 if (currentNode.Equals(targetNode)) {
                     return RetracePath(grid, startNode, targetNode, ref path);
                 }
@@ -54,9 +50,19 @@ namespace Pathfinding {
                 for (int i = 0; i < numNeighbours; ++i) {
                     Node neighbour = Grid.GetNeighbour(grid, i);
                     int ni = Grid.GetIndex(gridwidth, neighbour.x, neighbour.y);
-
-                    if ((mask & Node.GetType(neighbour)) == 0 || 
-                    Grid.ClosedSetContains(grid, ni)) {
+                    int nt = Node.GetType(neighbour);
+                    bool isNotWalkable = (mask & nt) == 0;
+                    
+                    // Return if the neighbour is the target node, but you cannot
+                    // walk on the target node 
+                    if (neighbour.Equals(targetNode) && isNotWalkable) {
+                        Grid.LinkNode(grid, ni, ci);
+                        return RetracePath(grid, startNode, neighbour, ref path);
+                    }
+                    
+                    // Continue searching when neighbour is not walkable,
+                    // or already checked
+                    if (isNotWalkable || Grid.ClosedSetContains(grid, ni)) {
                         continue;
                     }
 
