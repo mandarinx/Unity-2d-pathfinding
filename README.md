@@ -4,7 +4,6 @@ This is a highly specialized and optimized version of the pathfinder. It's meant
 
 - Nodes have a type (int) field for masking off areas of the grid. Use the mask argument in Pathfinder.Find() to tell the pathfinder which areas of the grid should be considered walkable for the path you're looking for.
 - Movement is allowed only along the cardinal axis.
-- The pathfinder will exit and return the path when it reaches the neighbour of the target node, and the target node's type is not in the current mask.
 - The API has been changed a bit to get rid of memory allocations.
 - It's meant to be fast on small grids. It's not tested on large grids.
 

@@ -51,18 +51,11 @@ namespace Pathfinding {
                     Node neighbour = Grid.GetNeighbour(grid, i);
                     int ni = Grid.GetIndex(gridwidth, neighbour.x, neighbour.y);
                     int nt = Node.GetType(neighbour);
-                    bool isNotWalkable = (mask & nt) == 0;
-                    
-                    // Return if the neighbour is the target node, but you cannot
-                    // walk on the target node 
-                    if (neighbour.Equals(targetNode) && isNotWalkable) {
-                        Grid.LinkNode(grid, ni, ci);
-                        return RetracePath(grid, startNode, neighbour, ref path);
-                    }
+                    bool isWalkable = (mask & nt) == 0;
                     
                     // Continue searching when neighbour is not walkable,
                     // or already checked
-                    if (isNotWalkable || Grid.ClosedSetContains(grid, ni)) {
+                    if (!isWalkable || Grid.ClosedSetContains(grid, ni)) {
                         continue;
                     }
 
